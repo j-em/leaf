@@ -5,7 +5,9 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "clean": "rimraf ./dist/*.js"
+    "clean": "rimraf ./dist/*.js",
+    "compile": "npm run clean && tsc",
+    "start": "npm run compile && node dist/index.js"
   },
   "repository": {
     "type": "git",
