@@ -30,11 +30,22 @@
   },
   "homepage": "https://github.com/j-em/Leaf#readme",
   "devDependencies": {
+    "@types/react": "^16.8.7",
+    "@types/react-dom": "^16.8.2",
+    "@types/rebass": "^3.0.3",
+    "@types/styled-components": "^4.1.12",
     "cp": "^0.2.0",
     "rimraf": "^2.6.3",
-    "typescript": "^3.3.3333"
+    "typescript": "^3.3.3333",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.2.3"
   },
   "dependencies": {
-    "electron": "^4.0.8"
+    "electron": "^4.0.8",
+    "monocle-ts": "^1.7.0",
+    "react": "^16.8.4",
+    "react-dom": "^16.8.4",
+    "rebass": "^3.0.1",
+    "styled-components": "^4.1.3"
   }
 }
