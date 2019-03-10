@@ -1,0 +1,29 @@
+{
+  "name": "leaf",
+  "version": "0.0.1",
+  "description": "A file manager",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/j-em/Leaf.git"
+  },
+  "keywords": [
+    "electron",
+    "react",
+    "typescript",
+    "javascript"
+  ],
+  "author": {
+    "email": "jeremy@allard.io",
+    "name": "Jeremy Allard",
+    "url": "jeremy.allard.dev"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/j-em/Leaf/issues"
+  },
+  "homepage": "https://github.com/j-em/Leaf#readme"
+}
