@@ -30,6 +30,7 @@
   },
   "homepage": "https://github.com/j-em/Leaf#readme",
   "devDependencies": {
+    "cp": "^0.2.0",
     "rimraf": "^2.6.3",
     "typescript": "^3.3.3333"
   },
