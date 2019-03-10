@@ -25,5 +25,8 @@
   "bugs": {
     "url": "https://github.com/j-em/Leaf/issues"
   },
-  "homepage": "https://github.com/j-em/Leaf#readme"
+  "homepage": "https://github.com/j-em/Leaf#readme",
+  "devDependencies": {
+    "typescript": "^3.3.3333"
+  }
 }
