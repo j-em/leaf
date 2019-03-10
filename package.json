@@ -32,5 +32,8 @@
   "devDependencies": {
     "rimraf": "^2.6.3",
     "typescript": "^3.3.3333"
+  },
+  "dependencies": {
+    "electron": "^4.0.8"
   }
 }
