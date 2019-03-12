@@ -2,12 +2,14 @@
   "name": "leaf",
   "version": "0.0.1",
   "description": "A file manager",
-  "main": "dist/index.js",
+  "main": "dist/main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rimraf ./dist/* ",
-    "compile": "npm run clean && tsc && cp src/index.html dist/index.html",
-    "start": "npm run compile && electron dist/index.js"
+    "compile": "webpack",
+    "build": "run-s clean compile && cp src/index.html dist/index.html",
+    "start": "run-s build && electron dist/main.js",
+    "dev": "webpack -w"
   },
   "repository": {
     "type": "git",
