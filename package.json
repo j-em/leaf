@@ -9,6 +9,7 @@
     "compile": "webpack",
     "build": "run-s clean compile && cp src/index.html dist/index.html",
     "start": "run-s build && electron dist/main.js",
+    "storybook": "start-storybook",
     "dev": "webpack -w"
   },
   "repository": {
