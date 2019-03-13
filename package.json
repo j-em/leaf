@@ -32,6 +32,7 @@
   },
   "homepage": "https://github.com/j-em/Leaf#readme",
   "devDependencies": {
+    "@storybook/react": "^5.0.1",
     "@types/react": "^16.8.7",
     "@types/react-dom": "^16.8.2",
     "@types/rebass": "^3.0.3",
@@ -49,6 +50,7 @@
   "dependencies": {
     "electron": "^4.0.8",
     "monocle-ts": "^1.7.0",
+    "newtype-ts": "^0.2.4",
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
     "rebass": "^3.0.1",
