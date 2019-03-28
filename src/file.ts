@@ -27,6 +27,6 @@ export const sortBySize = (files: File[]) =>
     } else if (f1.size < f2.size) {
       return -1;
     } else {
-      return 0
+      return 0;
     }
   }, files);
