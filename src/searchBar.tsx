@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
-import { Flex } from '@rebass/emotion';
-import { css } from 'emotion';
-import React from 'react';
-import { FaFolder } from 'react-icons/fa';
+import styled from "@emotion/styled";
+import { Flex } from "@rebass/emotion";
+import { css } from "emotion";
+import React from "react";
+import { FaFolder } from "react-icons/fa";
 
 const Input = styled.input(props => ({
   width: "100%",
