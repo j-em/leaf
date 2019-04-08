@@ -1,13 +1,13 @@
 import sort from "ramda/es/sort";
 import { Kb } from "./units";
 
-export type File = {
+export type File = Readonly<{
   kind: "folder" | "text";
   path: string;
   size: Kb;
   modifiedTime: Date;
   createdTime: Date;
-};
+}>;
 
 export const sortByPath = (files: File[]) =>
   sort((f1, f2) => {
