@@ -1,23 +1,36 @@
-import { Box, Flex } from '@rebass/emotion';
-import { css, cx } from 'emotion';
-import { range } from 'fp-ts/lib/Array';
-import { insert } from 'fp-ts/lib/Map';
-import { setoidNumber } from 'fp-ts/lib/Setoid';
-import { createContext, useContext, useEffect } from 'react';
-import React, { Reducer, useLayoutEffect, useReducer, useRef, useState } from 'react';
+import { Box, Flex } from "@rebass/emotion";
+import { css, cx } from "emotion";
+import {
+  createContext,
+  Dispatch,
+  useCallback,
+  useContext,
+  useEffect
+} from "react";
+import React, {
+  Reducer,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState
+} from "react";
 
-import theme from './theme';
-import useContainerWidth from './useContainerWidth';
+import Resizer from "./resizer";
+import theme from "./theme";
+import useRect from "./useRect";
+import useResizing from "./useResizing";
+import useTable from "./useTable";
 
 type RowProps = {
   onClick?: () => void;
   onDoubleClick?: () => void;
   onMouseOver?: () => void;
-  children?: React.ReactElement[];
+  children?: React.ReactNode;
   className?: string;
 };
 
-const Row: React.FC<RowProps> = props => {
+const Row: React.FC<RowProps> = React.memo(props => {
   return (
     <Flex
       onClick={props.onClick}
@@ -28,101 +41,138 @@ const Row: React.FC<RowProps> = props => {
       {props.children}
     </Flex>
   );
-};
+});
 
 type ColProps = {
-  onClick?: () => void;
-  onDoubleClick?: () => void;
-  onMouseOver?: () => void;
+  id?: string;
+  onWidthChange?: (newWidth: number) => void;
   children?: React.ReactNode;
-  className?: string;
+  minWidth?: number;
+  width?: number;
+  resizer?: React.ReactElement;
 };
-const Col: React.FC<ColProps> = ({ children, ...rest }) => {
+
+const Col: React.FC<ColProps> = React.memo(({ children, resizer, ...rest }) => {
   return (
     <Box
-      onClick={rest.onClick}
-      onDoubleClick={rest.onDoubleClick}
-      onMouseOver={rest.onMouseOver}
       className={cx(
-        rest.className,
         css({
-          padding: "0.5em",
+          position: "relative",
+          padding: "10px 0px",
+          flexShrink: 0,
+          flexGrow: 0,
           fontFamily: theme.fonts.sans,
-          overflowX: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
-          flexShrink: 0,
+          width: rest.width,
           borderBottom: `1px solid ${theme.colors.coolGray["10"]}`,
           borderRight: `1px solid ${theme.colors.coolGray["20"]}`
         })
       )}
     >
       {children}
+      {resizer}
     </Box>
   );
-};
+});
 
-type TableState = {
-  colSize: Map<number, number>;
-};
-type TableAction = { type: "setColSize"; colIndex: number; size: number };
+export type HeaderProps = ColProps;
+export const Header: React.FC<HeaderProps> = React.memo(
+  ({ onWidthChange, minWidth = 200, width, ...props }) => {
+    const resizerRef = useRef();
+    const resizerRect = useRect(resizerRef, [width]);
 
-type TableProps = {
-  children: React.ReactElement<{ children: React.ReactElement[] }>[];
-};
+    const [resizingState, dispatch] = useResizing({
+      minWidth,
+      width: width || minWidth,
+      resizerRect
+    });
 
-const useTableState = (defaultState: TableState) => {
-  const [state, dispatch] = useReducer<Reducer<TableState, TableAction>>(
-    (prevState, action) => {
-      switch (action.type) {
-        case "setColSize":
-          const colSize = insert<number>(setoidNumber)(
-            action.colIndex,
-            action.size,
-            prevState.colSize
-          );
-          return { ...prevState, colSize };
+    const onMouseDown = useCallback(() => dispatch({ type: "START_RESIZE" }), [
+      dispatch
+    ]);
+
+    useLayoutEffect(() => {
+      switch (resizingState.status) {
+        case "resized":
+          onWidthChange && onWidthChange(resizingState.to);
+          break;
+
+        case "resumedResize":
+          if (onWidthChange && resizerRect) {
+            const mousePos = resizingState.at.x;
+            const resizerEdge = resizerRect.x + resizerRect.width;
+
+            const correctedWidth =
+              mousePos > resizerEdge
+                ? width! + (mousePos - resizerEdge)
+                : undefined;
+
+            if (correctedWidth) {
+              onWidthChange(correctedWidth);
+            }
+          }
+          break;
       }
-      return prevState;
-    },
-    defaultState
-  );
+    }, [resizingState]);
 
-  return [state, dispatch] as const;
+    const resizer = useMemo(
+      () => <Resizer ref={resizerRef} onMouseDown={onMouseDown} />,
+      [onMouseDown]
+    );
+
+    return (
+      <Col resizer={resizer} width={width}>
+        {props.children}
+      </Col>
+    );
+  }
+);
+
+type TableProps<T extends Required<T>> = {
+  children: T[];
+  containerWidth: number;
 };
 
-const Table: React.FC<TableProps> = props => {
-  const [containerWidth, ref] = useContainerWidth();
-
-  const numberOfCols = Math.max(
-    ...props.children.map(row => row.props.children.length)
-  );
-
-  const [tableState, dispatch] = useTableState({
-    colSize: new Map(range(0, numberOfCols - 1).map(k => [k, 0]))
+const Table = <T extends Required<T>>(props: TableProps<T>) => {
+  const [tableState, dispatch] = useTable({
+    rows: props.children,
+    containerWidth: props.containerWidth
   });
 
-  useEffect(() => {
-    Array.from(tableState.colSize.keys()).map(col =>
-      dispatch({
-        type: "setColSize",
-        colIndex: col,
-        size: containerWidth / numberOfCols
-      })
-    );
-  }, [containerWidth]);
+  const onWidthChange: (
+    colId: string
+  ) => (newWidth: number) => void = colId => newWidth => {
+    dispatch({ type: "setColWidth", colId: colId, width: newWidth });
+  };
 
   return (
-    <Box ref={ref}>
-      {props.children.map(row => {
-        return React.cloneElement(row, {
-          children: row.props.children.map((col, colIndex) =>
-            React.cloneElement(col, {
-              className: css({ width: tableState.colSize.get(colIndex) })
-            })
-          )
-        });
-      })}
+    <Box className={css({ userSelect: "none" })}>
+      <Row>
+        {tableState.headers.map(cell => {
+          return (
+            <Header
+              key={cell.value}
+              width={cell.width}
+              id={cell.colId}
+              onWidthChange={onWidthChange(cell.colId)}
+            >
+              {cell.value}
+            </Header>
+          );
+        })}
+      </Row>
+      {tableState.rows.map(row => (
+        <Row>
+          {row.map(cell => {
+            return (
+              <Col key={cell.value} width={cell.width} id={cell.colId}>
+                {cell.value}
+              </Col>
+            );
+          })}
+        </Row>
+      ))}
     </Box>
   );
 };
