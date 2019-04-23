@@ -11,7 +11,7 @@ import React, {
 } from "react";
 
 import useRect from "./useRect";
-import useSelection, { Rect } from "./useSelection";
+import useMouseBox, { Rect } from "./useMouseBox";
 
 const isElInsideSel = (elBox: Rect, selBox: Rect) => {
   const edges = {
@@ -59,11 +59,12 @@ type SelectableItemProps = {
 };
 
 export const SelectableItem: React.FC<SelectableItemProps> = props => {
-  const { ref, dimensions } = useRect();
-  const selectionRect = useSelection();
+  const itemRef = useRef(undefined);
+  const rect = useRect(itemRef);
+  const selectionRect = useMouseBox();
 
   const isSelected =
-    selectionRect && dimensions && isElInsideSel(dimensions, selectionRect);
+    selectionRect && rect && isElInsideSel(rect, selectionRect);
 
   const isSelecting = selectionRect !== undefined;
 
@@ -75,7 +76,7 @@ export const SelectableItem: React.FC<SelectableItemProps> = props => {
     }
   }, [isSelected, isSelecting]);
   return (
-    <Box ref={ref} onClick={props.onClick}>
+    <Box ref={itemRef} onClick={props.onClick}>
       {props.children}
     </Box>
   );
@@ -84,7 +85,7 @@ export const SelectableItem: React.FC<SelectableItemProps> = props => {
 type SelectableArea = {};
 
 export const SelectableArea: React.FC<SelectableArea> = ({ children }) => {
-  const selectionRect = useSelection();
+  const selectionRect = useMouseBox();
   const style = css({ userSelect: "none" });
   return (
     <Box className={style}>
