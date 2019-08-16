@@ -11,7 +11,7 @@ import React, {
 } from "react";
 
 import useRect from "./useRect";
-import useMouseBox, { Rect } from "./useMouseBox";
+import useMouseBox, { Rect } from "./useMouseSelection";
 
 const isElInsideSel = (elBox: Rect, selBox: Rect) => {
   const edges = {

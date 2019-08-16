@@ -1,43 +1,129 @@
-import styled from "@emotion/styled";
-import { Flex } from "@rebass/emotion";
-import { css } from "emotion";
-import React from "react";
-import { FaFolder } from "react-icons/fa";
+import "carbon-components/css/carbon-components.min.css";
 
-const Input = styled.input(props => ({
-  width: "100%",
-  border: "0",
-  fontFamily: props.theme.fonts.sans,
-  fontSize: "1em",
-  "&:focus": {
-    outline: "none"
-  }
-}));
+import { Box, Flex } from "@rebass/emotion";
+import { css, cx } from "emotion";
+import React, {
+  ChangeEventHandler,
+  useCallback,
+  useEffect,
+  useState
+} from "react";
+import useSearch from "./useSearch";
+import { File } from "./file";
 
-const FolderIcon = styled(FaFolder)(props => ({
-  color: props.theme.colors.gray60,
-  height: "2em",
-  width: "2em"
-}));
+import Theme from "./theme";
 
-type Props = {
-  value: string;
-  onChange?: (ev: string) => void;
+type TagProps = {
+  className?: string;
 };
 
-export default ({ value, onChange, ...other }: Props) => {
+const Tag: React.FC<TagProps> = props => {
   return (
-    <Flex
-      className={css({ border: `1px solid #CCCCCC` })}
-      alignItems="center"
-      p={2}
-    >
-      <Input
-        placeholder="Find any files..."
-        onChange={onChange && (ev => onChange(ev.target.value))}
-        value={value}
-      />
-      {value.length > 0 ? <FolderIcon /> : null}
-    </Flex>
+    <span {...props} className={cx("bx--tag", props.className)}>
+      {props.children}
+    </span>
   );
 };
+
+export type SearchBarItemProps = {
+  onClick?: () => void;
+  isFocused?: boolean;
+};
+
+export const SearchBarItem: React.FC<SearchBarItemProps> = props => {
+  const baseStyle = css({
+    display: "flex",
+    alignItems: "center",
+    padding: "1em",
+    cursor: "pointer",
+    fontWeight: 500,
+    color: Theme.colors.gray["70"]
+  });
+
+  const focusedStyle =
+    props.isFocused &&
+    css({
+      color: "white",
+      backgroundColor: Theme.colors.blue["60"]
+    });
+
+  return (
+    <Box onClick={props.onClick} className={cx(baseStyle, focusedStyle)}>
+      {props.children}
+    </Box>
+  );
+};
+
+export type SearchBarInputProps = {
+  onChange?: (newValue: string) => void;
+  value?: string;
+};
+
+export const SearchBarInput: React.FC<SearchBarInputProps> = props => {
+  const onChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
+    ev => props.onChange && props.onChange(ev.target.value),
+    []
+  );
+  return (
+    <Box tabIndex={0} className={css({ outline: "none" })}>
+      <Flex
+        className={cx(
+          "bx--text-input",
+          "bx--text-input",
+          ".bx--text-input::placeholder"
+        )}
+        alignItems="center"
+        p={4}
+      >
+        <input
+          className={css({
+            backgroundColor: "inherit",
+            fontFamily: Theme.fonts.sans,
+            fontWeight: 500,
+            fontSize: "1.5em",
+            width: "100%",
+            border: 0,
+            "&:focus": { outline: "none" }
+          })}
+          placeholder="Start typing..."
+          onChange={onChange}
+          value={props.value}
+        />
+      </Flex>
+    </Box>
+  );
+};
+
+type SearchBarProps = { onMatchSelect: (f: File) => void };
+export const SearchBar: React.FC<SearchBarProps> = props => {
+  const [input, setInput] = useState("");
+  const { isSearching, partialMatches, exactMatch } = useSearch(input);
+
+  return (
+    <Box>
+      <SearchBarInput value={input} onChange={setInput} />
+      {isSearching ? (
+        <p>Searching...</p>
+      ) : (
+        <>
+          {exactMatch && (
+            <Box>
+              <SearchBarItem onClick={() => props.onMatchSelect(exactMatch)}>
+                <Tag className="bx--tag--green">Exact hit</Tag>
+                {exactMatch.absolutePath}
+              </SearchBarItem>
+            </Box>
+          )}
+          {partialMatches.map(match => (
+            <SearchBarItem onClick={() => props.onMatchSelect(match)}>
+              <Tag className="bx--tag--warm-gray">Partial hit</Tag>
+              {match.absolutePath}
+            </SearchBarItem>
+          ))}
+        </>
+      )}
+    </Box>
+  );
+};
+
+export default SearchBar;

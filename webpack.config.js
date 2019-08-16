@@ -32,6 +32,14 @@ module.exports = [
     module: {
       rules: [
         {
+          test: /\.css$/,
+          use: ["style-loader", "css-loader"]
+        },
+        {
+          test: /\.(woff|woff2)$/,
+          use: ["file-loader"]
+        },
+        {
           test: /\.tsx?$/,
           loader: 'ts-loader',
           include: path.resolve(__dirname, 'src'),

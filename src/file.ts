@@ -1,32 +1,43 @@
-import sort from "ramda/es/sort";
-import { Kb } from "./units";
+import { array } from "fp-ts/lib/Array";
+import { IO } from "fp-ts/lib/IO";
+import { tryCatch, left } from "fp-ts/lib/IOEither";
+import { fromNullable, Option, option } from "fp-ts/lib/Option";
+import fs from "fs-jetpack";
+import { InspectOptions, InspectResult } from "fs-jetpack/types";
 
-export type File = Readonly<{
-  kind: "folder" | "text";
-  path: string;
-  size: Kb;
-  modifiedTime: Date;
-  createdTime: Date;
-}>;
+import Path from "path";
+import { Observable, of, empty, from, pipe } from "rxjs";
+import { map, filter } from "rxjs/operators";
 
-export const sortByPath = (files: File[]) =>
-  sort((f1, f2) => {
-    if (f1.path > f2.path) {
-      return 1;
-    } else if (f1.path < f2.path) {
-      return -1;
-    } else {
-      return 0;
-    }
-  }, files);
+type Error = "READ_ERROR" | "WRITE_ERROR";
 
-export const sortBySize = (files: File[]) =>
-  sort((f1, f2) => {
-    if (f1.size > f2.size) {
-      return 1;
-    } else if (f1.size < f2.size) {
-      return -1;
-    } else {
-      return 0;
-    }
-  }, files);
+export type File =
+  | ({
+      id: string;
+      type: "dir";
+      content: IO<Option<File>[]>;
+    })
+  | { id: string; type: "file" };
+
+const list = (path: string) => fromNullable(fs.list(path));
+const inspect = (path: string) => fromNullable(fs.inspectTree(path));
+
+const createFsTree = (path: string): Option<File> => {
+  return inspect(path).map(result =>
+    result.type === "dir"
+      ? {
+          id: result.name,
+          type: "dir",
+          content: new IO(() =>
+            result.children.map(result => createFsTree(result.absolutePath!))
+          )
+        }
+      : { id: result.name, type: "file" }
+  );
+};
+
+const dir: File = {
+  id: "/",
+  type: "dir",
+  content: empty()
+};

@@ -8,6 +8,9 @@ import {
   useState
 } from "react";
 
+import { fromEvent } from "rxjs";
+import { auditTime } from "rxjs/operators"
+
 export type MousePosition = { x: number; y: number };
 
 type MouseAction =
@@ -53,21 +56,35 @@ const useMouseButton = (button: number) => {
 };
 
 const useMousePosition = () => {
-  const [currentPos, setCurrentPos] = useState<{ x: number; y: number }>({
+  const [currentPos, setCurrentPos] = useState<{
+    x: number;
+    y: number;
+    movementX: number;
+  }>({
     x: 0,
-    y: 0
+    y: 0,
+    movementX: 0
   });
-  const [lastPos, setLastPos] = useState(currentPos);
 
-  const onMouseMove = (ev: MouseEvent) =>
-    setCurrentPos({ x: ev.clientX, y: ev.clientY });
+    useEffect(() => {
+      const events = (fromEvent<MouseEvent>(window, "mousemove"));
 
-  useLayoutEffect(() => {
-    window.addEventListener("mousemove", onMouseMove);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-    };
-  }, []);
+      const subscription = events.subscribe(next => {
+        setCurrentPos(prevPos =>
+          next.clientX - prevPos.x !== 0
+            ? {
+                x: next.clientX,
+                y: next.clientY,
+                movementX: next.clientX - prevPos.x
+              }
+            : prevPos
+        );
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }, []);
 
   return currentPos;
 };

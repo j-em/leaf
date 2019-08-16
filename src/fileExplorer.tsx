@@ -1,16 +1,41 @@
-import React, { useState } from "react";
-import FileTable from "../src/fileTable";
-import { File } from "./file";
-import SearchBar from "./searchBar";
-import { Flex, Box } from "@rebass/emotion";
+import fs from "fs-jetpack";
+import Path from "path";
+import React, { Reducer, useEffect, useReducer, useState } from "react";
+import { fromNullable, Option } from "fp-ts/lib/Option";
 
-type Props = { files: ReadonlyArray<File> };
+import { File, FsGetter, inspect } from "./file";
+import FileTable from "./fileTable";
+
+type Props = {
+  path: string;
+};
+
+
+const useDirContent: (path: string) => File[] = path => {
+  const [dirContent, setDirContent] = useState<File[]>();
+
+  useEffect(() => {
+    const dirContent: Option<File[]> = fromNullable(inspect(path))
+      .filter(result => result.type === "dir")
+      .chain(dirStats =>
+        fromNullable(dirStats.absolutePath).chain(absolutePath =>
+          fromNullable(list(absolutePath)).map(children =>
+            children.map(relativePath => {
+              const childAbsolutePath = Path.join(absolutePath, relativePath);
+              return {
+                id: absolutePath,
+                absolutePath: childAbsolutePath,
+                size: dirStats.size
+              };
+            })
+          )
+        )
+      );
+  }, [path]);
+};
+
 export default (props: Props) => {
-  const [searchBarInput, setSearchBarInput] = useState("");
-  return (
-    <Box>
-      <SearchBar value={searchBarInput} onChange={setSearchBarInput} />
-      <FileTable files={props.files} />
-    </Box>
-  );
+  const file = useLocalFile(props.path);
+
+  return <FileTable files={files} />;
 };

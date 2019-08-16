@@ -1,57 +1,138 @@
-import React, { useReducer } from "react";
+import { array } from "fp-ts/lib/Array";
+import { produce } from "immer";
+import { fromTraversable, Iso, Lens, Optional, Traversal } from "monocle-ts";
+import { indexRecord } from "monocle-ts/lib/Index/Record";
+import React, { useEffect, useReducer } from "react";
 
-export type Cell = { value: string; width: number; colId: string };
-export type Row = ReadonlyArray<Cell>;
+export type Col = { value: string; key: string };
+export type Row = { cols: Col[] };
+
+type Range = [number, number];
+
+const Selection = Optional.fromNullableProp<State>()("selection");
+
+const SelectionStart = new Lens<Range, number>(
+  range => range[0],
+  newStart => range => [newStart, range[1]]
+);
+const SelectionEnd = new Lens<Range, number>(
+  range => range[1],
+  newEnd => range => [range[0], newEnd]
+);
+
+interface Sizer {
+  [x: string]: number;
+}
 
 type State = {
+  sizer: Sizer;
+  selection?: Range;
   headers: Row;
-  rows: ReadonlyArray<Row>;
+  rows: Row[];
 };
 
-type Action = { type: "setColWidth"; colId: string; width: number };
-
-export default <T extends Required<T>>(props: {
-  rows: T[];
+type Props<T> = {
+  records: T[];
+  minColWidth: number;
   containerWidth: number;
-}) => {
-  const [state, dispatch] = useReducer<React.Reducer<State, Action>, number>(
-    (prevState, action) => {
+};
+
+type Action =
+  | { type: "setColWidth"; colKey: string; width: number }
+  | { type: "setSelection"; index: number }
+  | { type: "selectNext" }
+  | { type: "selectPrev" }
+  | { type: "clearSelection" }
+  | { type: "resetState"; value: State };
+
+const Rows: Traversal<Row[], Row> = fromTraversable(array)();
+const Cols: Traversal<Row, Col> = Lens.fromProp<Row>()("cols").composeTraversal(
+  fromTraversable(array)()
+);
+
+export const RecordIso = <T extends Record<string, any>>(): Iso<T, Row> =>
+  new Iso(
+    (record): Row => ({
+      cols: Object.entries(record).map(
+        ([colKey, colValue], colIndex, cols) => ({
+          value: colValue.toString(),
+          key: colKey
+        })
+      )
+    }),
+    row => {
+      return Object.assign(
+        {},
+        ...row.cols.map(cell => ({ [cell.key]: cell.value } as const))
+      );
+    }
+  );
+
+const defaultState = produce(
+  <T>(draft: Props<T>): State => {
+    const rows = draft.records.map(record => RecordIso<T>().unwrap(record));
+
+    return {
+      sizer: rows[0].cols.reduce<Sizer>(
+        (sizer, col) => ({ ...sizer, [col.key]: 0 }),
+        {}
+      ),
+      selection: undefined,
+      headers: RecordIso<T>().unwrap(draft.records[0]),
+      rows
+    };
+  }
+);
+
+export default (props: Props<Record<string, any>>) => {
+  const [state, dispatch] = useReducer<React.Reducer<State, Action>>(
+    (prevState, action): State => {
+      const numberOfItems = prevState.rows.length;
+
       switch (action.type) {
+        case "selectPrev": {
+          const updateSelection = Selection.composeLens(
+            SelectionEnd
+          ).modifyOption(start => (start > 0 ? start - 1 : start));
+
+          return updateSelection(prevState).getOrElse(
+            Selection.set([numberOfItems - 1, numberOfItems - 1])(prevState)
+          );
+        }
+
+        case "selectNext": {
+          const updateSelection = Selection.composeLens(
+            SelectionEnd
+          ).modifyOption(end =>
+            end >= prevState.rows.length - 1 ? end + 1 : end
+          );
+
+          return updateSelection(prevState).getOrElse(
+            Selection.set([0, 0])(prevState)
+          );
+        }
+
+        case "clearSelection":
+          return { ...prevState, selection: undefined };
+
+        case "setSelection":
+          return Selection.set([action.index, action.index])(prevState);
+
         case "setColWidth": {
-          return {
-            headers: prevState.headers.map(col =>
-              col.colId === action.colId ? { ...col, width: action.width } : col
-            ),
-            rows: prevState.rows.map(row =>
-              row.map(col => {
-                return col.colId === action.colId
-                  ? { ...col, width: action.width }
-                  : col;
-              })
-            )
-          };
+          return Lens.fromProp<State>()("sizer")
+            .composeOptional(indexRecord<number>().index(action.colKey))
+            .set(action.width)(prevState);
+        }
+
+        case "resetState":
+          return action.value;
+
+        default: {
+          return prevState;
         }
       }
     },
-    props.containerWidth,
-    containerWidth => {
-      return {
-        headers: Object.keys(props.rows[0]).map((colKey, colIndex) => ({
-          value: colKey,
-          colId: colKey,
-          width: containerWidth / Object.keys(props.rows[0]).length,
-          isHeader: true
-        })),
-        rows: props.rows.map(row =>
-          Object.entries(row).map(([colKey, colValue], colIndex) => ({
-            value: colValue.toString(),
-            width: containerWidth / Object.keys(props.rows[0]).length,
-            colId: colKey,
-            isHeader: false
-          }))
-        )
-      };
-    }
+    defaultState(props)
   );
 
   return [state, dispatch] as const;

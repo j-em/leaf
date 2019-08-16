@@ -1,26 +1,23 @@
-import { remote } from 'electron';
-import React, { useContext, useState } from 'react';
-import { render } from 'react-dom';
-import { Box } from 'rebass';
+import "@ibm/plex/css/ibm-plex.min.css";
 
-import appMenu from './menu';
-import Toolbar from './toolBar';
+import { Box } from "@rebass/emotion";
+import { remote } from "electron";
+import React, { useContext, useState } from "react";
+import { render } from "react-dom";
+import FileExplorer from "./fileExplorer";
+import SearchBar from "./searchBar";
 
-const fs: typeof import("fs") = remote.require("fs");
-const path: typeof import("path") = remote.require("path");
+import appMenu from "./menu";
 
 type RendererState = {};
 type RendererProps = {};
 
 const Renderer = (props: RendererProps) => {
-  const [state, setState] = useState<RendererState>({
-    path: __dirname,
-    showSearchBar: true,
-    searchBarValue: ""
-  });
+  const [cwd, setCwd] = useState("");
   return (
     <Box>
-      <Toolbar />
+      <SearchBar onMatchSelect={f => setCwd(f.absolutePath)} />
+      <FileExplorer path={cwd} />
     </Box>
   );
 };
